@@ -1,0 +1,127 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ALERT360 Live Weather</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+body{margin:0;padding:18px;background:#071525;color:white;font-family:Arial}
+h1{color:#41dcff}
+input,button{padding:12px;border:0;border-radius:8px;margin:4px}
+input{width:55%;max-width:300px}
+button{background:#41dcff;font-weight:bold}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.card{background:#142c43;padding:16px;border-radius:12px}
+.big{font-size:27px;font-weight:bold;margin:8px 0}
+small{color:#b7cce0}
+#map{height:350px;border-radius:12px;margin-top:12px}
+</style>
+</head>
+<body>
+<h1>🌍 ALERT360</h1>
+<p>Live Worldwide Weather Dashboard</p>
+<input id="city" value="Chennai" placeholder="Search any city">
+<button onclick="searchCity()">Search</button>
+<button onclick="refresh()">Refresh</button>
+<p id="status">Connecting to weather service...</p>
+<h2 id="place">Weather Dashboard</h2>
+<div class="grid">
+<div class="card">🌡️ Temperature<div class="big" id="temp">--</div>°C</div>
+<div class="card">🤒 Feels Like<div class="big" id="feels">--</div>°C</div>
+<div class="card">💧 Humidity<div class="big" id="humidity">--</div>%</div>
+<div class="card">💨 Wind<div class="big" id="wind">--</div>km/h</div>
+<div class="card">🌧️ Rain now<div class="big" id="rain">--</div>mm</div>
+<div class="card">☔ Next 24h rain<div class="big" id="rain24">--</div>mm forecast</div>
+</div>
+<h2>🗺️ Interactive Map & Rain Radar</h2>
+<div id="map"></div>
+<button onclick="toggleRadar()">Show / Hide Radar</button>
+<h2>⏱️ Next 6 Hours</h2>
+<div class="card" id="hours">Loading...</div>
+<p><small>Weather: Open-Meteo | Radar: RainViewer | Map: OpenStreetMap</small></p>
+<p><small>Weather values are model estimates, not exact street-level measurements. Radar may be unavailable. Not an official emergency alert service.</small></p>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let lat=13.0827,lon=80.2707,radar=null,radarOn=true;
+const $=id=>document.getElementById(id);
+
+let map=L.map('map').setView([lat,lon],7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+attribution:'© OpenStreetMap contributors'
+}).addTo(map);
+let pin=L.marker([lat,lon]).addTo(map);
+
+map.on('click',e=>{
+lat=e.latlng.lat;lon=e.latlng.lng;
+pin.setLatLng(e.latlng);
+$('place').textContent='Selected map location';
+refresh();
+});
+
+async function searchCity(){
+try{
+$('status').textContent='Searching worldwide...';
+let r=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent($('city').value)+'&count=5&language=en&format=json');
+if(!r.ok)throw Error('Search service unavailable');
+let j=await r.json();
+if(!j.results?.length)throw Error('City not found. Try another name.');
+let x=j.results[0];
+lat=x.latitude;lon=x.longitude;
+$('place').textContent=[x.name,x.admin1,x.country].filter(Boolean).join(', ');
+map.setView([lat,lon],7);
+pin.setLatLng([lat,lon]);
+refresh();
+}catch(e){$('status').textContent=e.message}
+}
+
+async function refresh(){
+try{
+$('status').textContent='Fetching latest available data...';
+let url=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m&hourly=temperature_2m,precipitation,precipitation_probability&forecast_hours=24&timezone=auto`;
+let r=await fetch(url);
+if(!r.ok)throw Error('Weather service unavailable');
+let j=await r.json(),c=j.current,h=j.hourly;
+$('temp').textContent=c.temperature_2m;
+$('feels').textContent=c.apparent_temperature;
+$('humidity').textContent=c.relative_humidity_2m;
+$('wind').textContent=c.wind_speed_10m;
+$('rain').textContent=c.precipitation;
+$('rain24').textContent=h.precipitation.slice(0,24).reduce((a,b)=>a+b,0).toFixed(1);
+$('hours').innerHTML=h.time.slice(0,6).map((t,i)=>
+new Date(t).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+
+' · '+h.temperature_2m[i]+'°C · Rain '+h.precipitation[i]+' mm · Chance '+
+(h.precipitation_probability?.[i]??'--')+'%').join('<br>');
+$('status').textContent='Updated: '+c.time+' ('+j.timezone+')';
+pin.bindPopup(c.temperature_2m+'°C · Rain '+c.precipitation+' mm');
+}catch(e){$('status').textContent='Weather data unavailable: '+e.message}
+}
+
+async function loadRadar(){
+try{
+let r=await fetch('https://api.rainviewer.com/public/weather-maps.json');
+if(!r.ok)throw Error();
+let j=await r.json(),frames=j.radar?.past||[];
+if(!frames.length)throw Error();
+let f=frames[frames.length-1];
+let url=`${j.host}${f.path}/256/{z}/{x}/{y}/2/1_0.png`;
+if(radar)map.removeLayer(radar);
+radar=L.tileLayer(url,{opacity:.6,attribution:'Radar © RainViewer'});
+if(radarOn)radar.addTo(map);
+}catch(e){$('status').textContent+=' | Radar currently unavailable'}
+}
+
+function toggleRadar(){
+radarOn=!radarOn;
+if(radar){if(radarOn)radar.addTo(map);else map.removeLayer(radar)}
+else loadRadar();
+}
+
+searchCity();
+loadRadar();
+setInterval(()=>{refresh();loadRadar()},600000);
+</script>
+</body>
+</html>
