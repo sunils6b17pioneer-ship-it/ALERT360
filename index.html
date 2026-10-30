@@ -1,112 +1,189 @@
 
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#07111f">
-<title>ALERT360 | Smart Weather Intelligence</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ALERT360 Weather Map</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <style>
-:root {
-  --bg:#07111f; --panel:#101e30; --panel2:#14243a;
-  --line:#25374c; --text:#eef6ff; --muted:#91a5bd;
-  --blue:#50b8ff; --cyan:#55f0db; --purple:#9a8bff;
-  --orange:#ffba69; --red:#ff7185;
-}
 *{box-sizing:border-box}
-body{
-  margin:0;background:radial-gradient(ellipse at 20% 0%,#132d49 0,transparent 40%),var(--bg);
-  color:var(--text);font-family:Inter,Arial,sans-serif;min-height:100vh
+body{margin:0;background:#071426;color:#eef8ff;font:15px Arial,sans-serif;padding:14px}
+.head,.card{background:#102944;border:1px solid #29445c;border-radius:16px;padding:16px;margin-bottom:12px}
+.head{background:linear-gradient(130deg,#123c56,#102944)}
+h1{margin:0;color:#4de1e7}
+h2{font-size:23px;margin:9px 0}
+.muted,small{color:#a7bbcd;line-height:1.5}
+.controls{display:flex;gap:8px;flex-wrap:wrap}
+select,button{padding:12px;border-radius:10px;border:1px solid #29445c;font-size:15px}
+select{background:#071426;color:white;flex:1}
+button{background:#4de1e7;color:#071426;font-weight:bold}
+#status{font-size:12px;color:#6ee7ae;margin-top:10px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.metric{font-size:27px;font-weight:bold;margin:8px 0}
+.label{font-size:11px;color:#a7bbcd}
+#map{height:370px;border-radius:12px;overflow:hidden;background:#0a1b2c}
+.risk{border:1px solid #29445c;background:#091a2d;border-radius:10px;padding:12px;margin:8px 0}
+.risk b{display:block}
+.links a{display:block;padding:10px 0;color:#4de1e7;text-decoration:none}
+.notice{font-size:12px;line-height:1.5;background:#29241b;color:#ffdfab;border-radius:10px;padding:12px}
+.wide{grid-column:1/-1}
+.hour{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid #29445c;font-size:12px}
+.foot{font-size:11px;color:#a7bbcd;text-align:center;line-height:1.5}
+@media(min-width:800px){
+body{max-width:1100px;margin:auto}
+.grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.wide{grid-column:span 2}
+.mapcard{grid-column:span 3}
+.riskcard{grid-column:span 1}
 }
-button,input{font:inherit}
-button{cursor:pointer}
-.wrap{max-width:1450px;margin:auto;padding:24px}
-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:26px}
-.brand{display:flex;align-items:center;gap:12px}
-.logo{width:48px;height:48px;display:grid;place-items:center;border-radius:16px;background:linear-gradient(135deg,#48baff,#7068ff);font-size:25px;box-shadow:0 0 30px #398bff44}
-h1{font-size:22px;margin:0;letter-spacing:1px}
-.brand p{margin:5px 0 0;color:var(--muted);font-size:12px}
-.status{font-size:12px;color:var(--cyan);border:1px solid #24594f;border-radius:30px;padding:9px 13px}
-.status:before{content:"●";margin-right:8px}
-.search{display:flex;gap:8px;width:100%;max-width:470px}
-.search input{min-width:0;flex:1;background:var(--panel);border:1px solid var(--line);color:white;border-radius:12px;padding:13px 15px;outline:none}
-.search input:focus{border-color:var(--blue)}
-.btn{border:0;border-radius:12px;padding:12px 15px;background:linear-gradient(135deg,#45b9ff,#726aff);color:white;font-weight:700}
-.btn.secondary{background:#20334a;border:1px solid var(--line)}
-.section-title{font-size:14px;color:var(--muted);margin:26px 0 13px;font-weight:600;letter-spacing:.6px}
-.grid{display:grid;gap:15px}
-.hero-grid{grid-template-columns:1.3fr 1fr}
-.card{background:linear-gradient(145deg,#13243a,#0d1929);border:1px solid var(--line);border-radius:20px;padding:21px;min-width:0;box-shadow:0 12px 35px #00000013}
-.hero{position:relative;overflow:hidden;min-height:260px}
-.hero:after{content:"";position:absolute;width:220px;height:220px;border-radius:50%;background:#43a9ff13;right:-65px;top:-70px}
-.eyebrow{color:var(--muted);font-size:12px;letter-spacing:1px;text-transform:uppercase}
-.city{font-size:25px;font-weight:800;margin-top:9px}
-.date{font-size:12px;color:var(--muted);margin-top:6px}
-.temp-row{display:flex;align-items:center;gap:18px;margin-top:20px}
-.big-icon{font-size:64px;filter:drop-shadow(0 0 20px #65baff45)}
-.temperature{font-size:65px;font-weight:800;letter-spacing:-4px;line-height:1}
-.condition{color:#c4d6e9;margin-top:8px;font-size:14px}
-.feels{font-size:12px;color:var(--muted);margin-top:9px}
-.hero-bottom{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
-.pill{background:#1c3147;border:1px solid #2b435a;padding:9px 11px;border-radius:10px;font-size:12px;color:#d6e7f7}
-.metric-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-.metric{min-height:122px}
-.metric-top{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:12px}
-.metric-icon{font-size:21px}
-.metric-value{font-size:27px;font-weight:800;margin-top:17px}
-.metric-sub{font-size:11px;color:var(--muted);margin-top:6px}
-.forecast{grid-template-columns:repeat(7,minmax(0,1fr))}
-.day{padding:16px 7px;text-align:center}
-.day-name{font-size:11px;color:var(--muted)}
-.day-icon{font-size:27px;margin:15px 0}
-.day-temp{font-size:13px;font-weight:700}
-.day-low{font-size:11px;color:var(--muted);margin-top:6px}
-.hourly{display:flex;gap:12px;overflow-x:auto;padding:2px 0 8px}
-.hour{flex:0 0 85px;text-align:center;background:#14263b;border:1px solid #273b51;border-radius:14px;padding:15px 8px}
-.hour-time{font-size:11px;color:var(--muted)}
-.hour-icon{font-size:25px;margin:13px 0}
-.hour-temp{font-size:16px;font-weight:700}
-.hour-rain{font-size:10px;color:var(--cyan);margin-top:8px}
-.two-col{grid-template-columns:1fr 1fr}
-.aqi-value{font-size:35px;font-weight:800;margin:12px 0 5px}
-.aqi-bar{height:8px;border-radius:20px;background:linear-gradient(90deg,#5be0a1,#c8df65,#ffca72,#ff7b76,#a88aff);margin:18px 0 9px}
-.aqi-label{font-size:12px;color:var(--muted)}
-.small-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px}
-.small-stat{background:#172940;padding:13px;border-radius:12px}
-.small-stat span{font-size:11px;color:var(--muted)}
-.small-stat strong{display:block;font-size:18px;margin-top:7px}
-.alerts{display:grid;gap:10px}
-.alert{display:flex;gap:12px;padding:14px;background:#172940;border-radius:13px;border:1px solid #2a4058}
-.alert-symbol{font-size:22px}
-.alert strong{font-size:13px}
-.alert p{font-size:12px;color:var(--muted);line-height:1.6;margin:5px 0 0}
-#map{height:340px;border-radius:15px;z-index:1}
-.map-note{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.6}
-.chart-wrap{height:250px;position:relative}
-footer{text-align:center;color:var(--muted);font-size:11px;line-height:1.8;padding:28px 8px}
-.loading{color:var(--cyan);font-size:12px;margin-top:10px}
-.error{color:var(--orange)}
-.full{grid-column:1/-1}
-@media(max-width:850px){
- .hero-grid,.two-col{grid-template-columns:1fr}
- .forecast{grid-template-columns:repeat(4,minmax(0,1fr))}
- .wrap{padding:15px}
- .search{max-width:none}
-}
-@media(max-width:430px){
- .temperature{font-size:54px}
- .big-icon{font-size:50px}
- .card{padding:16px}
- .forecast{grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
- .day{padding:13px 3px}
- h1{font-size:19px}
-}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#102944;color:#eef8ff}
 </style>
 </head>
+<body>
+<header class="head">
+<div style="font-size:11px;letter-spacing:2px;color:#4de1e7">WEATHER INTELLIGENCE</div>
+<h1>◈ ALERT360</h1>
+<h2>Know the weather, area by area.</h2>
+<p class="muted">Interactive city map • Rainfall • Temperature • Humidity • Wind</p>
+<div class="controls">
+<input id="citySearch" type="search" placeholder="Search any city worldwide (e.g. Mumbai, Kathmandu, Tokyo)" value="Chennai" style="flex:1;min-width:190px;padding:12px;border-radius:10px;border:1px solid #29445c;background:#071426;color:white;font-size:15px">
+<button id="searchBtn">⌕ Search city</button>
+<button id="refresh">↻ Refresh</button>
+</div>
+<div id="status">Loading weather…</div>
+</header>
+
+<div class="grid">
+<div class="card"><div class="label">CITY TEMPERATURE</div><div class="metric" id="temp">--°C</div><small>Current forecast</small></div>
+<div class="card"><div class="label">RAIN NEXT 24 HOURS</div><div class="metric" id="rain">-- mm</div><small>Forecast total</small></div>
+<div class="card"><div class="label">FEELS LIKE</div><div class="metric" id="feels">--°C</div><small>Apparent temperature</small></div>
+<div class="card"><div class="label">HUMIDITY</div><div class="metric" id="hum">--%</div><small>Relative humidity</small></div>
+
+<div class="card wide mapcard">
+<h3>🗺️ Interactive weather map</h3>
+<div id="map"></div>
+<p class="muted">Tap coloured circles to see that forecast point. Green = lower rainfall; amber = moderate; red = heavier forecast rainfall. Map tiles © OpenStreetMap contributors.</p>
+</div>
+
+<div class="card riskcard">
+<h3>⚠️ Risk monitor</h3>
+<div class="risk"><b id="rainTitle">Rain indicator loading</b><small id="rainText">Forecast estimate only.</small></div>
+<div class="risk"><b id="heatTitle">Heat indicator loading</b><small id="heatText">Forecast estimate only.</small></div>
+<div class="risk"><b id="windTitle">Wind indicator loading</b><small id="windText">Not a cyclone prediction.</small></div>
+</div>
+
+<div class="card wide"><h3>⏱️ Next 6 hours</h3><div id="hours" class="muted">Waiting for forecast…</div></div>
+
+<div class="card wide">
+<h3>🛟 Official emergency sources</h3>
+<div class="links">
+<a href="https://mausam.imd.gov.in/" target="_blank">↗ India Meteorological Department</a>
+<a href="https://sachet.ndma.gov.in/" target="_blank">↗ Sachet disaster alerts</a>
+<a href="https://ndma.gov.in/" target="_blank">↗ National Disaster Management Authority</a>
+</div>
+</div>
+
+<div class="card wide">
+<div class="notice">Important: map points are model forecast estimates, not rain-gauge measurements. Risk colours are educational indicators, not official warnings. For emergencies, follow official authorities.</div>
+</div>
+</div>
+
+<p class="foot">ALERT360 school expo prototype • Weather forecast: Open-Meteo • Map: OpenStreetMap</p>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let selectedCity={name:"Chennai, Tamil Nadu, India",lat:13.0827,lon:80.2707};
+const offsets=[[-.18,-.18],[-.18,0],[-.18,.18],[0,-.18],[0,0],[0,.18],[.18,-.18],[.18,0],[.18,.18]];
+let map=null,marks=[];
+function msg(t){document.getElementById("status").textContent=t}
+function color(r){return r>=50?"#ff626f":r>=20?"#ffc46b":"#45d89a"}
+
+async function load(){
+ if(!map){msg("Map library not loaded. Check internet and reload.");return}
+ const c=selectedCity;
+ document.getElementById("refresh").disabled=true;
+ msg("Loading forecast points around "+c.name+"…");
+ try{
+ const coords=offsets.map(o=>[c.lat+o[0],c.lon+o[1]]);
+ const url="https://api.open-meteo.com/v1/forecast?latitude="+coords.map(p=>p[0]).join(",")+"&longitude="+coords.map(p=>p[1]).join(",")+"&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m&hourly=temperature_2m,precipitation,precipitation_probability,wind_speed_10m&forecast_days=2&timezone=auto";
+ const response=await fetch(url);
+ if(!response.ok)throw Error("Weather API unavailable");
+ let ds=await response.json();
+ if(!Array.isArray(ds))ds=[ds];
+ marks.forEach(m=>map.removeLayer(m));marks=[];
+ map.setView([c.lat,c.lon],10);
+ let maxR=0,maxT=-99,maxW=0;
+ ds.forEach((d,i)=>{
+ const cur=d.current,h=d.hourly;
+ const ix=Math.max(0,h.time.findIndex(t=>t>=cur.time));
+ const r=h.precipitation.slice(ix,ix+24).reduce((a,b)=>a+(b||0),0);
+ maxR=Math.max(maxR,r);maxT=Math.max(maxT,cur.temperature_2m);maxW=Math.max(maxW,cur.wind_speed_10m);
+ const m=L.circleMarker(coords[i],{radius:i===4?10:8,color:"#fff",weight:2,fillColor:color(r),fillOpacity:.9}).addTo(map);
+ m.bindPopup("<b>"+c.name+" forecast point "+(i+1)+"</b><br>Temperature: "+cur.temperature_2m.toFixed(1)+"°C<br>Feels like: "+cur.apparent_temperature.toFixed(1)+"°C<br>Humidity: "+cur.relative_humidity_2m+"%<br>Next 24h rain: "+r.toFixed(1)+" mm<br>Wind: "+cur.wind_speed_10m+" km/h");
+ marks.push(m);
+ });
+ const d=ds[4]||ds[0],cur=d.current,h=d.hourly;
+ const ix=Math.max(0,h.time.findIndex(t=>t>=cur.time));
+ const r=h.precipitation.slice(ix,ix+24).reduce((a,b)=>a+(b||0),0);
+ document.getElementById("temp").textContent=Math.round(cur.temperature_2m)+"°C";
+ document.getElementById("rain").textContent=r.toFixed(1)+" mm";
+ document.getElementById("feels").textContent=Math.round(cur.apparent_temperature)+"°C";
+ document.getElementById("hum").textContent=cur.relative_humidity_2m+"%";
+ document.getElementById("rainTitle").textContent=maxR>=50?"Heavier rainfall indicator":maxR>=20?"Moderate rainfall indicator":"Lower forecast rainfall";
+ document.getElementById("rainText").textContent="Highest sampled 24h rainfall: "+maxR.toFixed(1)+" mm.";
+ document.getElementById("heatTitle").textContent=maxT>=38?"High heat indicator":maxT>=33?"Warm conditions":"Lower temperature indicator";
+ document.getElementById("heatText").textContent="Highest sampled current temperature: "+maxT.toFixed(1)+"°C.";
+ document.getElementById("windTitle").textContent=maxW>=60?"High wind indicator":maxW>=35?"Elevated wind indicator":"Lower wind indicator";
+ document.getElementById("windText").textContent="Highest sampled current wind: "+maxW.toFixed(1)+" km/h. Not an official warning.";
+ const box=document.getElementById("hours");box.innerHTML="";
+ for(let j=ix;j<Math.min(ix+6,h.time.length);j++){
+ let row=document.createElement("div");row.className="hour";
+ let a=document.createElement("span"),b=document.createElement("span");
+ a.textContent=new Date(h.time[j]).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"});
+ b.textContent=Math.round(h.temperature_2m[j])+"°C · Rain "+Number(h.precipitation[j]).toFixed(1)+" mm · "+(h.precipitation_probability?.[j]??"--")+"% chance";
+ row.append(a,b);box.append(row);
+ }
+ msg(c.name+" • weather forecast loaded at "+new Date().toLocaleTimeString()+". Model estimates, not street-level thermometer readings.");
+ }catch(e){msg("Could not load forecast. Check your internet and try again.")}
+ finally{document.getElementById("refresh").disabled=false}
+}
+
+async function searchCity(){
+ const q=document.getElementById("citySearch").value.trim();
+ if(q.length<2){msg("Type a city name first.");return}
+ document.getElementById("searchBtn").disabled=true;
+ msg("Finding city: "+q+"…");
+ try{
+ const url="https://geocoding-api.open-meteo.com/v1/search?name="+encodeURIComponent(q)+"&count=10&language=en&format=json";
+ const response=await fetch(url);
+ if(!response.ok)throw Error("Location search unavailable");
+ const data=await response.json();
+ if(!data.results||!data.results.length){msg("City not found. Try adding state or country, e.g. Springfield, Illinois, USA.");return}
+ let place=data.results[0];
+ if(data.results.length>1){
+ const choices=data.results.map((x,i)=>(i+1)+". "+x.name+(x.admin1?", "+x.admin1:"")+(x.country?", "+x.country:""));
+ const pick=prompt("Choose the matching city by number:\n"+choices.join("\n"),"1");
+ if(pick===null)return;
+ const n=parseInt(pick,10);
+ if(!Number.isInteger(n)||n<1||n>data.results.length){msg("Invalid city choice. Search again.");return}
+ place=data.results[n-1];
+ }
+ selectedCity={name:[place.name,place.admin1,place.country].filter(Boolean).join(", "),lat:place.latitude,lon:place.longitude};
+ await load();
+ }catch(e){msg("Could not search city. Check your internet and try again.")}
+ finally{document.getElementById("searchBtn").disabled=false}
+}
+
+if(window.L){
+ map=L.map("map").setView([13.0827,80.2707],10);
+ L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"© OpenStreetMap contributors"}).addTo(map);
+ load();
+}else{msg("Map library did not load. Check internet and reload.")}
+
+document.getElementById("refresh").addEventListener("click",load);
+document.getElementById("searchBtn").addEventListener("click",searchCity);
+document.getElementById("citySearch").addEventListener("keydown",e=>{if(e.key==="Enter")searchCity()});
+</script>
+</body>
+</html>
